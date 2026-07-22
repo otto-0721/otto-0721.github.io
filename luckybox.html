@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔫 CS2 开箱模拟器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  min-height:100vh;
+  background:linear-gradient(180deg,#0a0a0f,#14141e);
+  font-family:'Segoe UI','PingFang SC',system-ui,sans-serif;
+  overflow-x:hidden;
+  color:#e0e0e0;
+}
+/* ===== 顶栏 ===== */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 24px;
+  background:rgba(0,0,0,0.6);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.topbar .logo{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px}
+.topbar .logo .cs{color:#f5a623}
+.topbar .stats{display:flex;gap:24px;font-size:13px;color:rgba(255,255,255,0.5)}
+.topbar .stats span{color:#f5a623;font-weight:700}
+
+/* ===== 容器 ===== */
+.container{
+  max-width:840px;
+  margin:0 auto;
+  padding:32px 16px 60px;
+  text-align:center;
+}
+
+h1{
+  font-size:28px;
+  font-weight:800;
+  background:linear-gradient(135deg,#f5a623,#e8c44a);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:4px;
+}
+.sub{
+  color:rgba(255,255,255,0.35);
+  font-size:14px;
+  margin-bottom:28px;
+}
+
+/* ===== 箱子选择 ===== */
+.case-selector{
+  display:flex;
+  justify-content:center;
+  gap:16px;
+  margin-bottom:28px;
+  flex-wrap:wrap;
+}
+.case-btn{
+  padding:10px 22px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.04);
+  color:#aaa;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.3s;
+  font-family:inherit;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.case-btn:hover{background:rgba(255,255,255,0.08);color:#eee}
+.case-btn.active{
+  border-color:#f5a623;
+  background:rgba(245,166,35,0.12);
+  color:#f5a623;
+  box-shadow:0 0 24px rgba(245,166,35,0.1);
+}
+
+/* ===== 开箱区域 ===== */
+.unbox-area{
+  position:relative;
+  background:rgba(0,0,0,0.4);
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.06);
+  padding:0;
+  overflow:hidden;
+  margin-bottom:20px;
+}
+.unbox-area .track-wrap{
+  position:relative;
+  overflow:hidden;
+  height:200px;
+  background:linear-gradient(90deg,rgba(0,0,0,0.6),transparent 15%,transparent 85%,rgba(0,0,0,0.6));
+}
+.unbox-area .track-wrap::before,
+.unbox-area .track-wrap::after{
+  content:'';
+  position:absolute;
+  top:0;bottom:0;
+  width:120px;
+  z-index:2;
+  pointer-events:none;
+}
+.unbox-area .track-wrap::before{
+  left:0;
+  background:linear-gradient(90deg,rgba(10,10,15,0.95),transparent);
+}
+.unbox-area .track-wrap::after{
+  right:0;
+  background:linear-gradient(270deg,rgba(10,10,15,0.95),transparent);
+}
+.track{
+  display:flex;
+  gap:8px;
+  padding:20px 0;
+  transition: none;
+  will-change:transform;
+}
+.track.spinning{
+  animation:none;
+}
+.track-item{
+  flex-shrink:0;
+  width:120px;
+  height:160px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.04);
+  border:2px solid rgba(255,255,255,0.08);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  transition:0.3s;
+  position:relative;
+  overflow:hidden;
+}
+.track-item .icon{font-size:40px;margin-bottom:6px;position:relative;display:flex;align-items:center;justify-content:center;flex:1;width:100%;min-height:60px}
+.track-item .item-name{font-size:11px;font-weight:700;text-align:center;line-height:1.3;max-width:100%;word-break:break-all}
+.track-item .item-quality{font-size:10px;margin-top:4px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px}
+
+/* 稀有度颜色 */
+.rarity-consumer{border-color:#b0b0b0;color:#b0b0b0}
+.rarity-industrial{border-color:#5e98d9;color:#5e98d9}
+.rarity-milspec{border-color:#4b69ff;color:#4b69ff}
+.rarity-restricted{border-color:#8847ff;color:#8847ff}
+.rarity-classified{border-color:#d32ce6;color:#d32ce6}
+.rarity-covert{border-color:#eb4b4b;color:#eb4b4b}
+.rarity-special{border-color:#ffd700;color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,0.15);background:rgba(255,215,0,0.05)}
+
+/* 选中指示器 */
+.indicator{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  z-index:5;
+  pointer-events:none;
+}
+.indicator-arrow{
+  font-size:36px;
+  color:#f5a623;
+  filter:drop-shadow(0 0 12px rgba(245,166,35,0.6));
+  animation:bounceArrow 1s ease-in-out infinite;
+}
+@keyframes bounceArrow{
+  0%,100%{transform:translateY(-4px)}
+  50%{transform:translateY(4px)}
+}
+.indicator-line{
+  width:120px;
+  height:2px;
+  background:#f5a623;
+  margin:0 auto;
+  box-shadow:0 0 20px rgba(245,166,35,0.6);
+}
+
+/* ===== 结果弹窗 ===== */
+.result-win{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(12px);
+  justify-content:center;
+  align-items:center;
+  animation:fadeIn 0.3s;
+}
+.result-win.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.result-card{
+  background:linear-gradient(145deg,#1a1a2e,#16213e);
+  border:2px solid rgba(255,215,0,0.3);
+  border-radius:24px;
+  padding:40px 48px;
+  max-width:420px;
+  width:90%;
+  text-align:center;
+  animation:popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes popIn{
+  from{transform:scale(0.6);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+.result-card .r-icon{font-size:72px;margin-bottom:12px;display:flex;justify-content:center;align-items:center;min-height:80px}
+.result-card .r-name{font-size:28px;font-weight:800;margin-bottom:4px}
+.result-card .r-quality{font-size:14px;margin-bottom:16px;letter-spacing:1px;text-transform:uppercase}
+.result-card .r-desc{color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:24px}
+.result-card .r-stars{font-size:16px;letter-spacing:4px;margin-bottom:20px;color:#ffd700}
+.result-card .btn-close{
+  padding:12px 40px;
+  border:none;
+  border-radius:50px;
+  background:linear-gradient(135deg,#f5a623,#e8c44a);
+  color:#0a0a0f;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  transition:0.3s;
+  font-family:inherit;
+}
+.result-card .btn-close:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,166,35,0.3)}
+
+/* ===== 操作按钮 ===== */
+.actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-open{
+  padding:16px 52px;
+  border:none;
+  border-radius:50px;
+  background:linear-gradient(135deg,#f5a623,#d4891a);
+  color:#0a0a0f;
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer;
+  transition:0.3s;
+  font-family:inherit;
+  box-shadow:0 8px 40px rgba(245,166,35,0.25);
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.btn-open:hover{transform:translateY(-3px);box-shadow:0 12px 50px rgba(245,166,35,0.35)}
+.btn-open:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-open:active:not(:disabled){transform:translateY(0)}
+.btn-skip{
+  padding:14px 28px;
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:50px;
+  background:rgba(255,255,255,0.05);
+  color:#888;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.3s;
+  font-family:inherit;
+}
+.btn-skip:hover{background:rgba(255,255,255,0.1);color:#eee}
+
+/* ===== 掉落日志 ===== */
+.log-section{
+  margin-top:28px;
+  text-align:left;
+}
+.log-section h3{
+  font-size:14px;
+  color:rgba(255,255,255,0.3);
+  margin-bottom:12px;
+  font-weight:600;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.log{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.log-item{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 12px 4px 8px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.06);
+  font-size:12px;
+  font-weight:600;
+}
+.log-item .li-icon{font-size:16px}
+
+@media(max-width:600px){
+  .track-item{width:90px;height:130px}
+  .track-item .icon{font-size:30px}
+  .track-item .item-name{font-size:10px}
+  .result-card{padding:28px 24px}
+  .result-card .r-icon{font-size:52px;min-height:60px}
+  .result-card .r-name{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><span class="cs">◆</span> CS2 开箱</div>
+  <div class="stats">已开 <span id="totalOpened">0</span> 箱 &middot; 总价值 <span id="totalValue">0</span></div>
+</div>
+
+<div class="container">
+  <h1>🔫 CS2 军械库</h1>
+  <p class="sub">真实爆率 · 军规 79.92% · 受限 15.98% · 保密 3.20% · 隐秘 0.64% · 特殊 0.26%</p>
+
+  <div class="case-selector" id="caseSelector"></div>
+
+  <div class="unbox-area">
+    <div class="track-wrap">
+      <div class="indicator">
+        <div class="indicator-arrow">▼</div>
+      </div>
+      <div class="track" id="track"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-open" id="openBtn">🔓 开箱</button>
+    <button class="btn-skip" id="skipBtn">跳过 &rarr;</button>
+  </div>
+
+  <div class="log-section">
+    <h3>📋 掉落记录</h3>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<!-- 中奖弹窗 -->
+<div class="result-win" id="resultWin">
+  <div class="result-card">
+    <div class="r-icon" id="rIcon">🔫</div>
+    <div class="r-name" id="rName">AK-47</div>
+    <div class="r-quality" id="rQuality">Covert</div>
+    <div class="r-desc" id="rDesc">品质：隐秘</div>
+    <div class="r-stars" id="rStars">★★★★★</div>
+    <button class="btn-close" id="closeResult">继续</button>
+  </div>
+</div>
+
+<script>
+// ===== 武器库 — 真实 CS2 数据 =====
+const WEAPONS = {
+  'Consumer':    { label: '消费级',    color: '#b0b0b0', stars: '★' },
+  'Industrial':  { label: '工业级',    color: '#5e98d9', stars: '★★' },
+  'Mil-Spec':    { label: '军规级',    color: '#4b69ff', stars: '★★★' },
+  'Restricted':  { label: '受限',      color: '#8847ff', stars: '★★★★' },
+  'Classified':  { label: '保密',      color: '#d32ce6', stars: '★★★★★' },
+  'Covert':      { label: '隐秘',      color: '#eb4b4b', stars: '★★★★★★' },
+  'Special':     { label: '稀有特殊',  color: '#ffd700', stars: '★★★★★★★' },
+};
+
+const IMG = 'https://community.steamstatic.com/economy/image/';
+
+const SKINS = {
+  'Consumer': [
+    { n:'Glock-18 | Candy Apple', e:'🔫' }, { n:'USP-S | Forest Leaves', e:'🔫' }, { n:'P2000 | Grassland', e:'🔫' },
+    { n:'Dual Berettas | Colony', e:'🔫' }, { n:'Five-SeveN | Forest Night', e:'🔫' }, { n:'Tec-9 | Groundwater', e:'🔫' },
+    { n:'MP7 | Olive Polycam', e:'⚡' }, { n:'MP9 | Green Plaid', e:'⚡' }, { n:'PP-Bizon | Irradiated Alert', e:'⚡' },
+    { n:'UMP-45 | Urban DDPAT', e:'⚡' }, { n:'MAG-7 | Silver', e:'🔫' }, { n:'Nova | Predator', e:'🔫' },
+    { n:'Sawed-Off | Sage Spray', e:'🔫' }, { n:'M249 | Contrast Spray', e:'⚡' }, { n:'Negev | Sand Dune', e:'⚡' },
+    { n:'MAC-10 | Candy Apple', e:'⚡' }, { n:'FAMAS | Colony', e:'🔫' }, { n:'SG 553 | Waves Perforated', e:'🔫' },
+    { n:'AUG | Condemned', e:'🔫' }, { n:'XM1014 | Blue Spruce', e:'🔫' }, { n:'SCAR-20 | Sand Mesh', e:'🎯' },
+    { n:'G3SG1 | VariCamo', e:'🎯' },
+  ],
+  'Industrial': [
+    { n:'Galil AR | Sage Spray', e:'🔫' }, { n:'FAMAS | Winter Forest', e:'🔫' }, { n:'MAC-10 | Urban DDPAT', e:'⚡' },
+    { n:'MP5-SD | Desert Strike', e:'⚡' }, { n:'SSG 08 | Sand Dune', e:'🎯' }, { n:'SG 553 | Ultra Violet', e:'🔫' },
+    { n:'AUG | Storm', e:'🔫' }, { n:'XM1014 | Bone Mask', e:'🔫' }, { n:'MAG-7 | Hazard', e:'🔫' },
+    { n:'PP-Bizon | Urban Dashed', e:'⚡' }, { n:'MP7 | Whiteout', e:'⚡' }, { n:'MP9 | Orange Peel', e:'⚡' },
+    { n:'UMP-45 | Urban DDPAT', e:'⚡' }, { n:'P250 | Boreal Forest', e:'🔫' }, { n:'Desert Eagle | Urban DDPAT', e:'🔫' },
+    { n:'Five-SeveN | Urban Hazard', e:'🔫' }, { n:'Glock-18 | Night', e:'🔫' }, { n:'P2000 | Scorpion', e:'🔫' },
+    { n:'Tec-9 | Tornado', e:'🔫' }, { n:'USP-S | Blue Spruce', e:'🔫' },
+  ],
+  'Mil-Spec': [
+    { n:'AK-47 | Black Laminate', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wipC0POlPPNhIf2sDHCvzedxuPUnGnzjlh51sTyAzomrICnEbQByWcciTOQIsBG_m9LiZOLh7wfdi91DnzK-0H1Z7oynag' },
+    { n:'AK-47 | Steel Delta', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiVI0POlPPNSM-SBAWmV_uJ_t-l9AXqyk0hy5GWEyduhdC2TPAEjDptzQbRf5EHrmoWyZu22sQLciokQyyzgznQesAEGx_A' },
+    { n:'M4A4 | Mainframe', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiNW0PGneqd4KeSRAWaCxdFlue1_SjuMmRQguynLmIyoI3KROlcgX5RxQrQMt0O6lIfkPuPi5AKKi9pEzX773XsYuHlj4_FCD_Ts_y5QsA' },
+    { n:'M4A1-S | Dark Water', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_GeMX2Vw_x3j-VoXSKMmRQguynLzI6td3-TPQAlD5slR-EJ5hDux9XmMe7i71CI2t8UzSuthi9OvSlo6vFCD_TltxSe0A' },
+    { n:'AWP | Worm God', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_DNk7uW-V7B6Kf6WMWuZxuZi_uRoGH3iw0wh4j7cnt6ucSqSZwUkCMB5TLIPsES_kNbuYeOwtgXai4NbjXKpZ4kj0o0' },
+    { n:'AWP | Capillary', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk7uW-V7JoKf6sAm6Xyfo44bE5HSrmlx5z4GTUzt__I3yebQAgA8R3FuFfsBTqx9W2Y7vq5lbfjZUFk3ugIlCuqg' },
+    { n:'Desert Eagle | Night', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk_P2RZq1qKOSsAm6Xyfo4seVrHHjmzRhz42XUm4mgIC6TaQYkXpMjTLIIsRawl9HhYbzktFPfgpUFk3u310nzMg' },
+    { n:'P250 | Valence', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiNK0OL8PfRSI_-dGmiF09F6ueZhW2fiwUx14zmDnNagcC-WagUkApslQuBYsUW_ktexPry3swPfiogTyyiqkGoXuQius2mt' },
+    { n:'UMP-45 | Scaffold', e:'⚡' }, { n:'MAC-10 | Strats', e:'⚡', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1T9s24bbZ5KfecHXeCwPdJsu18Sha_nBovp3PTmIuoJ3yVa1clXMB4TbEOsBHtwdHiZO-x7gWN2d8XyS_4i3xM53k4_a9cBrlyT3NZ' },
+    { n:'SSG 08 | Dusk', e:'🎯' }, { n:'FAMAS | Meow 36', e:'🔫' }, { n:'Galil AR | Akoben', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0OG-V6NsLPmfMWabzuxzvt5lRi67gVMlt2_dzd6qcH2TOgN0CpIlE7Ve5hbukdW0MrixslPW2IgQzyv8jypI8G81tJzCUipD' },
+    { n:'MP9 | Rose Iron', e:'⚡', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_C9k-_qheqp0H-KcHWKvzP4vj-1gSCGn20h0423Wn9qoJH6QOwNxXpRxQOQLtEHumtTvP-i05wyMjN5Hz3qtiy1XrnE8Sl7QOgI' },
+    { n:'MP7 | Blue Fury', e:'⚡' }, { n:'Glock-18 | Sacrifice', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1Y-s2pZKtuK8-bC3Wf_uJ_t-l9AXHixRlytW7Ty4queH_DZlMlX5UjF-dZsUPqk9LhY-Lk5waMjdlCmSzgznQeEFBQhB0' },
+    { n:'USP-S | Guardian', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_ut6teZoQT2MmRQguynLyd76I32fbFUkD5EmRu4Ct0O4m9fmY-zlsQSMiN9CnHj2jitL531o4fFCD_TZrkjVNw' },
+    { n:'Five-SeveN | Hot Shots', e:'🔫' }, { n:'AUG | Sweets', e:'🔫' }, { n:'SG 553 | Darkwing', e:'🔫' },
+    { n:'P90 | Run and Hide', e:'⚡' }, { n:'Nova | Red Quasar', e:'🔫' }, { n:'MAG-7 | Swag-7', e:'🔫' },
+  ],
+  'Restricted': [
+    { n:'AK-47 | Redline', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSI_-RHGavzedxuPUnFniykEtzsWWBzoyuIiifaAchDZUjTOZe4RC_w4buM-6z7wzbgokUyzK-0H08hRGDMA' },
+    { n:'M4A4 | Tiger Strike', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiNK0O2naZ9IeuTAmWV-uNx_tK9sCn_zkEr7DmNyd_jMHqUMQJ0mWZIiE7EK4Bi4k9TlY-y24FbAy9USLSyZ5pIr8G81tRgLe13d' },
+    { n:'AWP | Atlas', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_DN13OW-V6hqL_SHXeAyuJrj-1gSCGn20x0s2zcu79Rc3PUZQVkWbpxQ-0Kt0a6ltHmY-Oy1pVfi4ZMxzHqj3C0YvXrnE8asZxVHw' },
+    { n:'Desert Eagle | Blue Ply', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk6OGRbKFsJ_yWMXWV0eJ_s-BWQyC0nQlpsjzdwtqgIHqfZgAgDZBwROBbtRDsm4HiM7zislfYitpBniz6iy5K7DErvbjLUTqBnA' },
+    { n:'P250 | Nevermore', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiNa0OL8PfRSJ-KSGGKUyOlxtfN6cCW6khUz_TjdmdeqdymfbVQlXpp0QuVYtBSwk9zmN-634gXd2tpCyH_2hipKunl1o7FVDpyoDiY' },
+    { n:'USP-S | Lead Conduit', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSJ-OsG3SA_vh5vPVoSCyMmRQguynLmNyrdimTZw4mW8cmE-ZYsxewkYaxZb6z5FbfjY8RyS__iXsc6S09sfFCD_RkYnnFtg' },
+    { n:'Glock-18 | Bunsen Burner', e:'🔫' }, { n:'MP9 | Featherweight', e:'⚡' }, { n:'FAMAS | Valence', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1a_s2oaalsM8-QAWmEzvtkj-1gSCGn2x4ksWzczo39c3_Ga1R1CpByR-YO4RXqm9fgP76w4lbYi91CzSyq2H5XrnE8rQqckvg' },
+    { n:'Galil AR | Vember', e:'🔫' }, { n:'MAC-10 | Monkeyflage', e:'⚡' }, { n:'SSG 08 | Death Strike', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1Y-s29e6M9eM-ADWiC0ed5vt5lRi67gVMh6jjTn9ygJSieaAEiAsB2F7Jfshe-xtHkPuvisQLXgt8UmCz523lM8G81tFON4mQ2' },
+    { n:'M4A1-S | Emphorosaur-S', e:'🔫' }, { n:'SG 553 | Heavy Metal', e:'🔫' }, { n:'AUG | Midnight Malice', e:'🔫' },
+    { n:'P90 | Vent Rush', e:'⚡' }, { n:'UMP-45 | Fade', e:'⚡' },
+  ],
+  'Classified': [
+    { n:'AK-47 | Frontside Misty', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSN_mdGmKC_v1mv_N9cCW6khUz_WvRm9r8JS-SaFMmWcN5ReMD4BDsltDkN-Prs1DfjN9Cn3r_jC4YvHl1o7FVgJsyBlQ' },
+    { n:'AK-47 | Point Disarray', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSMP-aAHOvxedlsfN7TjCMmRQguynLnIz_dXnEbFcoDsNzQLMN40S7mte0Zuzl5gbY34JEnnr52ChA7ytisPFCD_Rw7udDlA' },
+    { n:'M4A1-S | Moss Quartz', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_GeMWSC2P1ise1lRjO2kSIjsi-OpYjrJC7JAVp5Xco0W7NZsRCwmoCzNbni7lGNi4JMyij3ii9LvS5q4u4KUKIl-ayF2QnBOeYjoc5UYcWIs5E' },
+    { n:'M4A4 | The Emperor', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiVI0P_6afBSJf2DC3Wf09F6ueZhW2exwBh_6m3dnt36InjDPQ4oXJt1TbJeshW_mtfjN-vrsgaKiokWy333kGoXuRj4z9Nd' },
+    { n:'AWP | Wildfire', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk7uW-V7NkLPSVB3WV_uJ_t-l9AX7rxhl-tmzSwomtdC6TPwQnW5UkR-YD5kK-ltCzP-Ox4FfXiNoQyyrgznQeu9L0PzQ' },
+    { n:'AWP | Featherweight', e:'🎯' }, { n:'Desert Eagle | Code Red', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk6OGRbKFsJ_yWMWaXxvxzo_JmXRa_nBovp3PRmNj4c3mTb1RxC5cjF-EItRnrlNzkYrnk5gaI3Y0UmyX52H9K7ixs_a9cBsGEcOCn' },
+    { n:'USP-S | Cortex', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_u1jpN5lRi67gVNz4G7Qm938cS_Da1AhXpB1EeVb4xm4mtDjN7vj4A3b2NpGyCr52i4Y8G81tMzdoYZ7' },
+    { n:'SSG 08 | Parallax', e:'🎯' }, { n:'P250 | Wingshot', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwipC0OL8PfRSI-KSDWyDyeFij-1gSCGn205wtT7Xn4yuc3qQbQUkXJQmEeQCtkK7wdDgZO7n71Df2IkQxH7-hyhXrnE8AH9Qqg8' },
+    { n:'Glock-18 | Synth Leaf', e:'🔫' }, { n:'FAMAS | Eye of Hades', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1a_s2rZbFZIfSNH2mF09F6ueZhW2fiwUx14zmGNG4jc3eQb1UiTEIjaU7FdskW_m9fgO-6w4lXciYtIyHyjsj0KvXrnE8NXFykiQ' },
+    { n:'Galil AR | Hammer Down', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0PKnZKFpH_CAC2f1-tR_s-N9DSu2kQjz42XUm4mgIC6TaQYkXpMjTLIIsQ0O6mtDiYezi9Ajb2N9Fy365jCkK7nF06ucLA1SXO0X1b6bVS4fcerq0qJjqXM' },
+    { n:'MP9 | Black Sand', e:'⚡', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_jdk4uL3V6ZhIfOYMXSRz-pJvOhuRz39xxsj5GWDn9z6d3rCOFV1CJpwTO4IsEG8x4WzPr6xtlTZ2YlEzX-vhzQJsHjCKAg7iw' },
+  ],
+  'Covert': [
+    { n:'AK-47 | Inheritance', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiNQ0OKheqdoLPGaAFicyOl-pK8xGH_nwUt1sGrSz9ivcHKQOAcjXMYkRu5Yuxe4lYCyZOq25VSM2oMT02yg2UxBSEgA' },
+    { n:'AK-47 | Leet Museo', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiVI0POlPPNSIfKAGnWRwvpJvOhuRz39xEly6jmHmdiqeS6UawMmCsBzFrRb4BLtx9DgPr635A3Xj45GySj5jzQJsHjwtGRbjQ' },
+    { n:'M4A4 | Howl', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afVSKP-EAm6extF6ueZhW2exwkl2tmTXwt39eCiUPQR2DMN4TOVetUK8xoLgM-K341eM2otDnC6okGoXufBz_TAB' },
+    { n:'M4A1-S | Printstream', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_OGMWrEwL9lj_F7Rienhgk1tjyIpYPwJiPTcAAoCpsiEO5ZsUbpm9C2Zuni4VHW3o5EzSX62HxP7Sg96-hWVqYi_6TJz1aW0nxrkGs' },
+    { n:'AWP | Dragon Lore', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV' },
+    { n:'AWP | Gungnir', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf-jFk7uW-V6N4LvedB3WvzedxuPUnHnjnzUl0sWrdztitI3rDZgJzAsZ1QOFY4UPqldDgMO_l41HXit9AmTK-0H227dAsvQ' },
+    { n:'Desert Eagle | Blaze', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7vORbqhsLfWAMWuZxuZi_uI_TX6wxxkjsGXXnImsJ37COlUoWcByEOMOtxa5kdXmNu3htVPZjN1bjXKpkHLRfQU' },
+    { n:'USP-S | Kill Confirmed', e:'🔫', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_uV_vO1WTCa9kxQ1vjiBpYPwJiPTcFB2Xpp5TO5cskG9lYCxZu_jsVCL3o4Xnij23ClO5ik9tegFA_It8qHJz1aWe-uc160' },
+    { n:'SSG 08 | Blood in the Water', e:'🎯', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1Y-s29YKV_K8-fB2CY1aAmsbFtFnDilkUl5j7UzoqsInmVaFd0XMMlELYDshbuxNPvP-yxtlCMlcsbmlWiixNl' },
+    { n:'★ Karambit | Doppler', e:'🔪', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SA1iDwP5muOh7Sha-lA8lvziMgIr9HifOOV5kFMRxFuEM5hi_xNXhMbmx5VCMjd9MyCv6jigc6n064ucLAvZ3_6bViV3fcepqpLtspE0' },
+    { n:'★ Butterfly Knife | Fade', e:'🔪', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2avx-9ytd5lRi67gVNwsDvSwtqqc3iXZg4kCZYjReYLtRbum9XgYuvm5wbWjtgUzCn3iSsf8G81tFEeH9rw' },
+    { n:'★ M9 Bayonet | Marble Fade', e:'🔪', i:'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Wts2sab1iLvWHMWad_uN3ouNlSha1lBkijDGMnYftb3OTbVRyD8Z1RrNctkS6kobkZLzi7gTW2NpFxH33hi9Nuno65uxXAqs7uvqA7lyFHH4' },
+  ],
+  'Special': [
+    { n:'★ Karambit | Crimson Web', e:'🔪' }, { n:'★ Butterfly Knife | Autotronic', e:'🔪' },
+    { n:'★ M9 Bayonet | Lore', e:'🔪' }, { n:'★ Talon Knife | Doppler', e:'🔪' },
+    { n:'★ Bowie Knife | Slaughter', e:'🔪' }, { n:'★ Falchion Knife | Fade', e:'🔪' },
+    { n:'★ Huntsman Knife | Tiger Tooth', e:'🔪' }, { n:'★ Shadow Daggers | Ruby', e:'🔪' },
+    { n:'★ Ursus Knife | Marble Fade', e:'🔪' }, { n:'★ Navaja Knife | Doppler', e:'🔪' },
+    { n:'★ Stiletto Knife | Damascus', e:'🔪' }, { n:'★ Classic Knife | Fade', e:'🔪' },
+    { n:"★ Sport Gloves | Pandora's Box", e:'🧤' }, { n:'★ Driver Gloves | Crimson Weave', e:'🧤' },
+    { n:'★ Hand Wraps | Cobalt Skulls', e:'🧤' }, { n:'★ Moto Gloves | Spearmint', e:'🧤' },
+    { n:'★ Specialist Gloves | Emerald Web', e:'🧤' }, { n:'★ Bloodhound Gloves | Charred', e:'🧤' },
+  ],
+};
+
+const CASES = [
+  {
+    name: 'Kilowatt Case',
+    emoji: '⚡',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+  {
+    name: 'Revolution Case',
+    emoji: '💥',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+  {
+    name: 'Dreams & Nightmares',
+    emoji: '🌙',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+  {
+    name: 'Recoil Case',
+    emoji: '🔥',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+  {
+    name: 'Snakebite Case',
+    emoji: '🐍',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+  {
+    name: 'Fracture Case',
+    emoji: '💎',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+  {
+    name: 'Prisma 2 Case',
+    emoji: '🌈',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+  {
+    name: 'Operation Riptide',
+    emoji: '🌊',
+    weights: { Consumer: 0, Industrial: 0, MilSpec: 79.92, Restricted: 15.98, Classified: 3.20, Covert: 0.64, Special: 0.26 },
+  },
+];
+
+// ===== 状态 =====
+let currentCase = 0;
+let isOpening = false;
+let canSkip = false;
+let totalOpened = 0;
+let totalValue = 0;
+let openHistory = [];
+
+const rarities = ['Consumer', 'Industrial', 'Mil-Spec', 'Restricted', 'Classified', 'Covert', 'Special'];
+const rarityMap = ['rarity-consumer','rarity-industrial','rarity-milspec','rarity-restricted','rarity-classified','rarity-covert','rarity-special'];
+
+// ===== 初始化 =====
+function initCases() {
+  const sel = document.getElementById('caseSelector');
+  CASES.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'case-btn' + (i === 0 ? ' active' : '');
+    btn.innerHTML = `${c.emoji} ${c.name}`;
+    btn.onclick = () => selectCase(i);
+    sel.appendChild(btn);
+  });
+}
+initCases();
+
+function selectCase(i) {
+  if (isOpening) return;
+  currentCase = i;
+  document.querySelectorAll('.case-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+}
+
+function weightedRandom(caseIdx) {
+  const c = CASES[caseIdx];
+  const entries = Object.entries(c.weights);
+  const total = entries.reduce((s, [, w]) => s + w, 0);
+  let r = Math.random() * total;
+  for (const [key, w] of entries) {
+    r -= w;
+    if (r <= 0) return key;
+  }
+  return 'Consumer';
+}
+
+function getSkin(rarity) {
+  const pool = SKINS[rarity] || SKINS['Consumer'];
+  const s = pool[Math.floor(Math.random() * pool.length)];
+  return { name: s.n, emoji: s.e, img: s.i ? IMG + s.i : null };
+}
+
+function rarityIndex(rarity) {
+  return rarities.indexOf(rarity);
+}
+
+// ===== 渲染轨道 =====
+function renderTrack(items, highlightIdx = -1) {
+  const track = document.getElementById('track');
+  track.innerHTML = '';
+  items.forEach((item, idx) => {
+    const div = document.createElement('div');
+    const ri = rarityIndex(item.rarity);
+    div.className = `track-item ${rarityMap[ri] || 'rarity-consumer'}`;
+    div.innerHTML = `
+      <div class="icon">${item.img ? `<img src="${item.img}" alt="${item.name}" style="width:100%;height:100%;object-fit:contain;position:absolute;inset:0;padding:4px">` : item.emoji}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-quality">${WEAPONS[item.rarity]?.label || item.rarity}</div>
+    `;
+    track.appendChild(div);
+  });
+}
+
+function generateSpinItems(winnerRarity) {
+  const items = [];
+  const count = 30 + Math.floor(Math.random() * 10);
+  for (let i = 0; i < count; i++) {
+    // 越靠近中间(目标位置)越容易出 winner
+    const dist = Math.abs(i - 15);
+    let rarity;
+    if (dist === 0) {
+      rarity = winnerRarity;
+    } else {
+      // 随机，但靠近目标的给更好品质
+      const r = Math.random();
+      const ri = rarityIndex(winnerRarity);
+      const maxIdx = rarities.length - 1;
+      const offset = Math.floor(Math.random() * 3) + Math.max(0, dist - 2);
+      const idx = Math.max(0, Math.min(maxIdx, ri + (r < 0.3 ? -offset : r < 0.6 ? 0 : offset)));
+      rarity = rarities[idx];
+    }
+    const skin = getSkin(rarity);
+    items.push({ name: skin.name, emoji: skin.emoji, img: skin.img, rarity });
+  }
+  // 确保第15个是winner
+  const winIdx = 15;
+  const winSkin = getSkin(winnerRarity);
+  items[winIdx] = { name: winSkin.name, emoji: winSkin.emoji, img: winSkin.img, rarity: winnerRarity };
+  return items;
+}
+
+// ===== 开箱 =====
+function openCase() {
+  if (isOpening) return;
+  isOpening = true;
+  canSkip = false;
+  document.getElementById('openBtn').disabled = true;
+  document.getElementById('skipBtn').textContent = '⏳ 开箱中...';
+
+  const winnerRarity = weightedRandom(currentCase);
+  const items = generateSpinItems(winnerRarity);
+  const track = document.getElementById('track');
+
+  // 计算位置：目标在索引15，居中显示
+  const itemWidth = 128;
+  const trackRect = track.parentElement.getBoundingClientRect();
+  const centerOffset = (trackRect.width / 2) - (itemWidth / 2) - 20;
+  const targetOffset = -(15 * itemWidth) + centerOffset;
+
+  // 先快速填充
+  renderTrack(items);
+  track.style.transition = 'none';
+  track.style.transform = `translateX(${targetOffset + 800}px)`;
+  track.offsetHeight; // force reflow
+
+  // 动画
+  const duration = 2500 + Math.random() * 1000;
+  track.style.transition = `transform ${duration}ms cubic-bezier(0.1, 0.8, 0.2, 1)`;
+  track.style.transform = `translateX(${targetOffset}px)`;
+
+  canSkip = true;
+  document.getElementById('skipBtn').textContent = '⏩ 跳过';
+
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    canSkip = false;
+    isOpening = false;
+    document.getElementById('openBtn').disabled = false;
+    document.getElementById('skipBtn').textContent = '跳过 →';
+
+    // 显示结果
+    const winItem = items[15];
+    showResult(winItem);
+    totalOpened++;
+    document.getElementById('totalOpened').textContent = totalOpened;
+
+    addLog(winItem);
+  };
+
+  const timer = setTimeout(finish, duration + 200);
+
+  document.getElementById('skipBtn').onclick = () => {
+    if (!canSkip) return;
+    clearTimeout(timer);
+    track.style.transition = `transform 300ms cubic-bezier(0.2, 0.8, 0.3, 1)`;
+    track.style.transform = `translateX(${targetOffset}px)`;
+    setTimeout(finish, 400);
+  };
+}
+
+// ===== 显示结果 =====
+function showResult(item) {
+  const win = document.getElementById('resultWin');
+  const ri = rarityIndex(item.rarity);
+  const rarityInfo = WEAPONS[item.rarity] || { label: item.rarity, color: '#fff', stars: '★' };
+
+  const rIcon = document.getElementById('rIcon');
+  if (item.img) {
+    rIcon.innerHTML = `<img src="${item.img}" alt="${item.name}" style="width:100%;max-height:180px;object-fit:contain">`;
+  } else {
+    rIcon.textContent = item.emoji;
+  }
+  document.getElementById('rName').textContent = item.name;
+  document.getElementById('rName').style.color = rarityInfo.color;
+  document.getElementById('rQuality').textContent = rarityInfo.label;
+  document.getElementById('rQuality').style.color = rarityInfo.color;
+  document.getElementById('rDesc').textContent = `品质：${item.rarity}`;
+  document.getElementById('rStars').textContent = rarityInfo.stars;
+  win.classList.add('show');
+
+  // 特殊音效感觉 - 页面闪烁
+  if (ri >= 4) {
+    const flashColor = ri === 6 ? '#1a1a00' : '#1a0a0a';
+    const glowColor = ri === 6 ? 'rgba(255,215,0,0.3)' : 'rgba(255,71,87,0.3)';
+    document.body.style.transition = '0.05s';
+    document.body.style.background = flashColor;
+    document.body.style.boxShadow = `inset 0 0 200px ${glowColor}`;
+    setTimeout(() => { document.body.style.background = ''; document.body.style.boxShadow = ''; }, 200);
+  }
+}
+
+document.getElementById('closeResult').onclick = () => {
+  document.getElementById('resultWin').classList.remove('show');
+};
+
+// ===== 日志 =====
+function addLog(item) {
+  openHistory.unshift(item);
+  if (openHistory.length > 50) openHistory.pop();
+  const log = document.getElementById('log');
+  log.innerHTML = openHistory.map(it => {
+    const ri = rarityIndex(it.rarity);
+    return `<span class="log-item" style="border-color:${WEAPONS[it.rarity]?.color || '#888'}">
+      <span class="li-icon">${it.img ? `<img src="${it.img}" alt="" style="width:20px;height:20px;object-fit:contain;vertical-align:middle">` : it.emoji}</span> ${it.name}
+    </span>`;
+  }).join('');
+}
+
+// ===== 绑定事件 =====
+document.getElementById('openBtn').addEventListener('click', openCase);
+
+// 键盘回车
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    const win = document.getElementById('resultWin');
+    if (win.classList.contains('show')) {
+      win.classList.remove('show');
+    } else {
+      openCase();
+    }
+  }
+});
+
+// ===== 初始轨道 =====
+const M4M = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiNW0PGneqd4KeSRAWaCxdFlue1_SjuMmRQguynLmIyoI3KROlcgX5RxQrQMt0O6lIfkPuPi5AKKi9pEzX773XsYuHlj4_FCD_Ts_y5QsA';
+const AKD = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiVI0POlPPNSM-SBAWmV_uJ_t-l9AXqyk0hy5GWEyduhdC2TPAEjDptzQbRf5EHrmoWyZu22sQLciokQyyzgznQesAEGx_A';
+const AWC = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk7uW-V7JoKf6sAm6Xyfo44bE5HSrmlx5z4GTUzt__I3yebQAgA8R3FuFfsBTqx9W2Y7vq5lbfjZUFk3ugIlCuqg';
+const DEN = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk_P2RZq1qKOSsAm6Xyfo4seVrHHjmzRhz42XUm4mgIC6TaQYkXpMjTLIIsRawl9HhYbzktFPfgpUFk3u310nzMg';
+const AKR = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSI_-RHGavzedxuPUnFniykEtzsWWBzoyuIiifaAchDZUjTOZe4RC_w4buM-6z7wzbgokUyzK-0H08hRGDMA';
+const MSQ = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_GeMWSC2P1ise1lRjO2kSIjsi-OpYjrJC7JAVp5Xco0W7NZsRCwmoCzNbni7lGNi4JMyij3ii9LvS5q4u4KUKIl-ayF2QnBOeYjoc5UYcWIs5E';
+const AWW = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk7uW-V7NkLPSVB3WV_uJ_t-l9AX7rxhl-tmzSwomtdC6TPwQnW5UkR-YD5kK-ltCzP-Ox4FfXiNoQyyrgznQeu9L0PzQ';
+const AKF = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSN_mdGmKC_v1mv_N9cCW6khUz_WvRm9r8JS-SaFMmWcN5ReMD4BDsltDkN-Prs1DfjN9Cn3r_jC4YvHl1o7FVgJsyBlQ';
+const KAD = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SA1iDwP5muOh7Sha-lA8lvziMgIr9HifOOV5kFMRxFuEM5hi_xNXhMbmx5VCMjd9MyCv6jigc6n064ucLAvZ3_6bViV3fcepqpLtspE0';
+const AWL = 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV';
+const initItems = [
+  { name: 'Glock-18 | Candy Apple', emoji: '🔫', img: null, rarity: 'Consumer' },
+  { name: 'USP-S | Forest Leaves', emoji: '🔫', img: null, rarity: 'Consumer' },
+  { name: 'M4A4 | Mainframe', emoji: '🔫', img: IMG + M4M, rarity: 'Mil-Spec' },
+  { name: 'AK-47 | Steel Delta', emoji: '🔫', img: IMG + AKD, rarity: 'Mil-Spec' },
+  { name: 'AWP | Capillary', emoji: '🎯', img: IMG + AWC, rarity: 'Mil-Spec' },
+  { name: 'Desert Eagle | Night', emoji: '🔫', img: IMG + DEN, rarity: 'Mil-Spec' },
+  { name: 'AK-47 | Redline', emoji: '🔫', img: IMG + AKR, rarity: 'Restricted' },
+  { name: 'M4A1-S | Moss Quartz', emoji: '🔫', img: IMG + MSQ, rarity: 'Classified' },
+  { name: 'AWP | Wildfire', emoji: '🎯', img: IMG + AWW, rarity: 'Classified' },
+  { name: 'AK-47 | Frontside Misty', emoji: '🔫', img: IMG + AKF, rarity: 'Classified' },
+  { name: '★ Karambit | Doppler', emoji: '🔪', img: IMG + KAD, rarity: 'Covert' },
+  { name: 'AWP | Dragon Lore', emoji: '🎯', img: IMG + AWL, rarity: 'Covert' },
+];
+renderTrack(initItems);
+</script>
+</body>
+</html>

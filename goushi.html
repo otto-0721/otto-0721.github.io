@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<!-- saved from url=(0054)file:///C:/Users/Administrator/Desktop/asd/zuowei.html -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界上最伟大的作品</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  min-height:100vh;
+  background:url('./assets/屏幕截图 2026-07-23 204622.png') center/cover fixed;
+  font-family:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  overflow-x:hidden;
+  color:#fff;
+  position:relative;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ===== 奶龙装饰 ===== */
+.dragon-bg{
+  position:fixed;
+  font-size:120px;
+  opacity:0.06;
+  pointer-events:none;
+  z-index:0;
+  user-select:none;
+}
+.dragon-bg.d1{top:5%;left:3%;transform:rotate(-15deg)}
+.dragon-bg.d2{bottom:8%;right:5%;transform:rotate(20deg) scaleX(-1)}
+.dragon-bg.d3{top:40%;right:2%;font-size:80px;opacity:0.04}
+
+/* ===== 顶栏 ===== */
+.topbar{
+  position:relative;
+  z-index:1;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 28px;
+  background:rgba(0,0,0,0.4);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.topbar .logo{
+  font-size:20px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.topbar .logo .nai{
+  font-size:32px;
+  line-height:1;
+  animation:bounce 2s ease-in-out infinite;
+}
+@keyframes bounce{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+.topbar .logo .title-glow{
+  background:linear-gradient(135deg,#ffd700,#ff6b6b,#ffd700);
+  background-size:200% 200%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:shimmer 3s ease-in-out infinite;
+}
+@keyframes shimmer{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+.topbar .tag{
+  display:flex;
+  gap:16px;
+  font-size:13px;
+  color:rgba(255,255,255,0.4);
+}
+.topbar .tag span{color:#ffd700;font-weight:700}
+
+/* ===== 主容器 ===== */
+.container{
+  position:relative;
+  z-index:1;
+  max-width:960px;
+  margin:0 auto;
+  padding:40px 20px 80px;
+  text-align:center;
+}
+
+h1{
+  font-size:42px;
+  font-weight:900;
+  background:linear-gradient(135deg,#ffd700,#ff6b6b,#a855f7,#ffd700);
+  background-size:300% 300%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:shimmer 4s ease-in-out infinite;
+  margin-bottom:8px;
+  letter-spacing:2px;
+  text-shadow:none;
+  position:relative;
+}
+h1::after{
+  content:'';
+  display:block;
+  font-size:24px;
+  margin-top:4px;
+  -webkit-text-fill-color:initial;
+}
+.sub{
+  color:rgba(255,255,255,0.4);
+  font-size:14px;
+  margin-bottom:40px;
+  letter-spacing:4px;
+}
+
+/* ===== 视频卡片 ===== */
+.video-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:24px;
+  margin-bottom:32px;
+}
+.video-card{
+  background:rgba(255,255,255,0.04);
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,0.08);
+  overflow:hidden;
+  transition:0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+  position:relative;
+}
+.video-card:hover{
+  transform:translateY(-6px) scale(1.02);
+  border-color:rgba(255,215,0,0.3);
+  box-shadow:0 20px 60px rgba(255,215,0,0.1),0 0 40px rgba(168,85,247,0.08);
+}
+.video-card .label-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 16px;
+  background:rgba(0,0,0,0.3);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.video-card .label-bar .num{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#ffd700,#ff6b6b);
+  color:#1a0a2e;
+  font-size:14px;
+  font-weight:800;
+}
+.video-card .label-bar .hint{
+  font-size:12px;
+  color:rgba(255,255,255,0.3);
+  letter-spacing:1px;
+}
+
+.video-card .video-text{
+  padding:16px 16px 8px;
+  font-size:13px;
+  color:rgba(255,255,255,0.5);
+  min-height:20px;
+  text-align:left;
+}
+.video-card .video-text .label{
+  color:rgba(255,255,255,0.25);
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.video-card .video-text .content{
+  font-size:15px;
+  font-weight:600;
+  color:#fff;
+}
+
+.video-card .video-slot{
+  position:relative;
+  aspect-ratio:16/9;
+  background:rgba(0,0,0,0.3);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  margin:0 16px 16px;
+  border-radius:12px;
+  border:1px dashed rgba(255,255,255,0.1);
+}
+.video-card .video-slot .placeholder{
+  text-align:center;
+  color:rgba(255,255,255,0.15);
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:2px;
+  user-select:none;
+}
+.video-card .video-slot .placeholder .big{
+  font-size:48px;
+  display:block;
+  margin-bottom:8px;
+  opacity:0.3;
+}
+.video-card .video-slot video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  position:absolute;
+  inset:0;
+}
+
+/* ===== 底部 ===== */
+.footer{
+  position:relative;
+  z-index:1;
+  padding:20px;
+  text-align:center;
+  font-size:12px;
+  color:rgba(255,255,255,0.15);
+  letter-spacing:2px;
+  border-top:1px solid rgba(255,255,255,0.04);
+  margin-top:20px;
+}
+
+/* ===== 响应式 ===== */
+@media(max-width:768px){
+  .video-grid{grid-template-columns:1fr;gap:20px}
+  h1{font-size:28px}
+  .topbar{padding:12px 16px;flex-direction:column;gap:8px}
+  .topbar .tag{font-size:11px}
+  .dragon-bg{display:none}
+}
+@media(max-width:480px){
+  h1{font-size:22px}
+  .container{padding:24px 12px 60px}
+}
+
+/* ===== 一键播放按钮 ===== */
+.btn-play-all{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 40px;
+  border:none;
+  border-radius:50px;
+  background:linear-gradient(135deg,#ffd700,#ff6b6b);
+  color:#1a0a2e;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+  transition:0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+  font-family:inherit;
+  box-shadow:0 8px 40px rgba(255,107,107,0.25);
+  margin-bottom:20px;
+}
+.btn-play-all:hover{
+  transform:translateY(-3px) scale(1.03);
+  box-shadow:0 12px 50px rgba(255,107,107,0.35);
+}
+.btn-play-all:active{
+  transform:translateY(0) scale(0.97);
+}
+</style>
+<script>
+function playAll(){
+  const videos = document.querySelectorAll('.video-slot video');
+  videos.forEach(v => {
+    v.currentTime = 0;
+    v.play().catch(function(){});
+  });
+}
+</script>
+</head>
+<body>
+
+
+
+<div class="topbar">
+  <div class="logo">
+    <span class="nai"></span>
+    <span class="title-glow">世界上最伟大的作品</span>
+  </div>
+  <div class="tag">
+    <span>奶龙</span> · <span>孙笑川</span> · <span>Danking</span>
+  </div>
+</div>
+
+<div class="container">
+  <h1>世界上最伟大的作品</h1>
+  <p class="sub">奶龙 · 孙笑川 · Danking</p>
+
+  <div class="video-grid">
+    <div class="video-card">
+      <div class="label-bar">
+        <span class="num">1</span>
+        <span class="hint">奶龙</span>
+      </div>
+      <div class="video-text">
+        <div class="label">我才是奶龙</div>
+        <div class="content">奶龙大帝</div>
+      </div>
+      <div class="video-slot">
+        <video src="./assets/long/屏幕录制 2026-07-23 181413.mp4" controls=""></video>
+      </div>
+    </div>
+
+    <div class="video-card">
+      <div class="label-bar">
+        <span class="num">2</span>
+        <span class="hint">孙笑川</span>
+      </div>
+      <div class="video-text">
+        <div class="label">尸体大笑</div>
+        <div class="content">孙笑川大哭</div>
+      </div>
+      <div class="video-slot">
+        <video src="./assets/屏幕录制/屏幕录制 2026-07-23 180525.mp4" controls=""></video>
+      </div>
+    </div>
+
+    <div class="video-card">
+      <div class="label-bar">
+        <span class="num">3</span>
+        <span class="hint">danking（吴世勋）</span>
+      </div>
+      <div class="video-text">
+        <div class="label">野生卤蛋</div>
+        <div class="content">卤蛋对我笑</div>
+      </div>
+      <div class="video-slot">
+        <video src="./assets/屏幕录制 2026-07-23 180643.mp4" controls=""></video>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-play-all" onclick="playAll()">▶ 一键爽听</button>
+</div>
+
+<div class="footer">
+  奶龙 · Danking · 孙笑川
+</div>
+
+
+
+</body></html>

@@ -91,8 +91,10 @@ body {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   background:linear-gradient(135deg,#4a2800,#2a1500);
   color:#fff; font-weight:bold; text-shadow:1px 1px 3px rgba(0,0,0,.8);
+  background-size:cover; background-position:center;
 }
 .enemy-card .portrait { border-color:#993333; }
+.hero-card .portrait.has-img { background-blend-mode:overlay; }
 .hero-card .kingdom {
   position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%;
   display:flex; align-items:center; justify-content:center; font-size:10px;
@@ -636,6 +638,14 @@ function rHandCount() {
 function rHero(eId,pf,p) {
   if (!p) return;
   const el=$(eId); if (!el) return;
+  const portEl=el.querySelector('.portrait');
+  if (p.heroId==='sunquan'&&!p.isMou) {
+    portEl.style.backgroundImage='url(./assets/fb8545ae-e646-437c-ad16-0d16bd5c24a3.jpg)';
+    portEl.classList.add('has-img');
+  } else {
+    portEl.style.backgroundImage='';
+    portEl.classList.remove('has-img');
+  }
   $(pf+'K').textContent = ({wei:'魏',shu:'蜀',wu:'吴',qun:'群'}[p.hero.kingdom]);
   $(pf+'K').className = 'kingdom '+p.hero.kingdom;
   $(pf+'Name').textContent = p.alive ? p.hero.name : '阵亡';

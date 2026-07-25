@@ -9,13 +9,13 @@
 :root { --anim-speed: 1; }
 body {
   font-family:'Microsoft YaHei','SimHei',sans-serif;
-  background:#1a0a00;
+  background:url('./assets/2cf20af7-4ea6-44b4-97ba-a6324c3e62b2.jpg') center/cover fixed;
   overflow:hidden;
   height:100vh; width:100vw;
 }
 #game {
   width:100vw; height:100vh; position:relative;
-  background:radial-gradient(ellipse at center,#3d1f00,#1a0a00 70%,#0a0500);
+  background:radial-gradient(ellipse at center,rgba(61,31,0,.85),rgba(26,10,0,.9) 70%,rgba(10,5,0,.95));
 }
 
 /* 选将 */
@@ -803,7 +803,7 @@ async function startTurn() {
   if (!p.alive) { nextTurn(); return; }
   G.canSha=true; G.selCards=[]; G.zhangfei=p.hero.id==='zhangfei';
   G.crossbow=p.equip.weapon&&p.equip.weapon.name==='诸葛连弩';
-  G.jiuDrunk=false;
+  G.jiuDrunk=false; G.skipPlayPhase=false;
   p.zhiheng=false;
   rPhase('draw',G.turn); rAll(); await sleep(500);
   // 延时锦囊判定
@@ -825,8 +825,7 @@ async function startTurn() {
       if (j.suit!=='heart') {
         addLog(p.name+'被乐不思蜀跳过出牌阶段'); msg('乐不思蜀生效，跳过出牌！',2000); await sleep(800);
         p.delayed.splice(i,1); G.discard.push(d);
-        rAll(); await sleep(600);
-        if (G.phase!=='gameOver') { G.phase='discard'; rPhase('discard',G.turn); rActs(null); await discardPhase(p); nextTurn(); return; }
+        G.skipPlayPhase=true; rAll(); await sleep(600);
       } else { addLog('乐不思蜀判定未生效'); msg('判定通过！',1200); p.delayed.splice(i,1); G.discard.push(d); rAll(); await sleep(300); }
     } else if (d.sub==='skipDraw') {
       showCard(d); await sleep(800);
@@ -859,6 +858,7 @@ async function drawPhase(p) {
 }
 async function playPhase(p) {
   G.phase='play';
+  if (G.skipPlayPhase) { G.skipPlayPhase=false; G.phase='discard'; rActs(null); rPhase('discard',G.turn); await sleep(300); await discardPhase(p); return; }
   if (p.isAI) { await aiPlay(p); } else { await waitPlayer(p); }
   G.phase='discard'; rActs(null); rPhase('discard',G.turn); await sleep(300);
   await discardPhase(p);
